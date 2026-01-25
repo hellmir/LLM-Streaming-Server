@@ -22,7 +22,7 @@ def generate_response(llm_type: str, template_content: str, options: str):
         input_variables=["options"],
         template=TEMPLATE_HEADER + template_content + TEMPLATE_FOOTER
     )
-    llm = llm_picker.get_llm(llm_type.lower())
+    llm = llm_picker.get_llm(llm_type.lower() if llm_type else "")  # [CHANGED] None 안전 처리
     chain = prompt | llm
     i = 0
 
@@ -40,10 +40,11 @@ async def generate_sync_response(llm_type: str, template_content: str, options: 
         input_variables=["options"],
         template=TEMPLATE_HEADER + template_content + TEMPLATE_FOOTER
     )
-    llm = llm_picker.get_llm(llm_type.lower())
+    llm = llm_picker.get_llm(llm_type.lower() if llm_type else "")  # [CHANGED] None 안전 처리
     chain = prompt | llm
 
     response = chain.invoke({"options": options})
+    log.info("LLM API로부터의 수신 데이터: " + (response.content if hasattr(response, "content") else str(response)))
 
     if hasattr(response, "content"):
         response_content = response.content
@@ -51,13 +52,14 @@ async def generate_sync_response(llm_type: str, template_content: str, options: 
         try:
             response_content = json.loads(response_content)
         except json.JSONDecodeError:
-            log.info("JSON 파싱 실패:", response_content)
+            log.info("JSON 파싱 실패: %s", response_content)
             return response_content
 
         food_names = [item["name"] for item in response_content if "name" in item]
         log.info("추천 메뉴 목록: %s", food_names)
 
-        await add_images(food_names, response_content)
+        if isinstance(options, dict) and "ingredients" in options:  # [CHANGED] 옵션 타입/키 방어
+            await add_images(food_names, response_content)
 
         return response_content
 
@@ -84,8 +86,8 @@ async def add_images(food_names, response_content):
     if image_search_usage + len(food_names) >= 100:
         log.warning(SEARCH_USAGE_LIMIT_PER_DAY_EXCEEDED_MESSAGE)
 
-        for i in food_names:
-            image_urls[i] = DEFAULT_IMAGE_URL
+        # [CHANGED] 기본 이미지 채우기 로직 수정 (list로 일괄 채움)
+        image_urls = [[DEFAULT_IMAGE_URL] for _ in food_names]
     else:
         image_urls = await asyncio.gather(*[search_google_images(name) for name in food_names])
         image_search_usage += len(image_urls)
@@ -95,7 +97,7 @@ async def add_images(food_names, response_content):
             item["imageUrls"] = image_urls[i]
 
     updated_json = json.dumps(response_content, ensure_ascii=False, indent=2)
-    log.info("반환 데이터: %s", updated_json)
+    log.info("최종 JSON 데이터: %s", updated_json)
 
 
 async def search_google_images(food_name):
@@ -123,7 +125,6 @@ async def search_google_images(food_name):
 
 
 def reset_image_search_usage():
-    global paid_model_usage
-    paid_model_usage = 0
-
+    global image_search_usage  # [CHANGED] 변수명 오류 수정 (paid_model_usage -> image_search_usage)
+    image_search_usage = 0
     log.info("이미지 검색 사용량이 초기화 되었습니다. 일일 사용량: %d", image_search_usage)

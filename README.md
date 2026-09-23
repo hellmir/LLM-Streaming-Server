@@ -3,7 +3,7 @@
 ## 📋 프로젝트 설명
 
 ### 다양한 생성형 AI 모델의 스트리밍 서비스를 제공하는 서버
-- Mistral Large
+- Ministral 3 14B
 - HCX-003
 - Gemini 1.5 Pro
 - Llama 3.3

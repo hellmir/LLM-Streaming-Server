@@ -63,7 +63,7 @@ def generate_chat_deep_seek():
 
 def generate_chat_mistral_ai():
     return langchain_mistralai.ChatMistralAI(
-        model="mistral-large-latest",
+        model="ministral-14b-latest",
         temperature=0.7,
         max_tokens=2_048,
         max_retries=2

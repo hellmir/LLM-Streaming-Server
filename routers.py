@@ -12,7 +12,6 @@ from fastapi.responses import StreamingResponse
 
 import global_exception_handler
 import services
-from stream_formatter import normalize_chunks_to_lines
 
 router = fastapi.APIRouter(prefix="")
 
@@ -103,12 +102,8 @@ def invoke_llm_streaming(request: LLMRequest):
 
     def response_generator():
         try:  # 방어 로깅
-            lines = normalize_chunks_to_lines(
-                services.generate_response(llm_type, request.template, options),
-                llm_type=llm_type
-            )
-            for line in lines:
-                yield line + "\n"
+            for chunk in services.generate_response(llm_type, request.template, options):
+                yield str(chunk)
         except Exception as e:
             log.exception("streaming error: %s", e)
 
@@ -141,18 +136,33 @@ def invoke_llm_sse_get(
     llm_type_val = llm_type or ""
     options_val = parsed_options
 
-    def _sse_event_with_newline(line: str) -> str:
-        return f"data: {line}\ndata: \n\n"
+    def _sse_event_for_chunk(chunk: str) -> str:
+        if not chunk:
+            return ""
+        out_lines = []
+        buf = ""
+        for ch in chunk.replace("\r\n", "\n").replace("\r", "\n"):
+            if ch == "\n":
+                if buf:
+                    out_lines.append(f"data: {buf}")
+                    buf = ""
+                out_lines.append("data: ")
+            else:
+                buf += ch
+        if buf:
+            out_lines.append(f"data: {buf}")
+        if not out_lines:
+            return ""
+        return "\n".join(out_lines) + "\n\n"
 
     def sse_response_generator():
         last_beat = time.time()
         try:
-            for line in normalize_chunks_to_lines(
-                    services.generate_response(llm_type_val, template, options_val),
-                    llm_type=llm_type_val
-            ):
+            for chunk in services.generate_response(llm_type_val, template, options_val):
                 # 데이터 이벤트
-                yield _sse_event_with_newline(line)
+                payload = _sse_event_for_chunk(str(chunk))
+                if payload:
+                    yield payload
                 # 하트비트(프록시/브라우저 타임아웃 방지)
                 if time.time() - last_beat > 15:
                     yield ": keep-alive\n\n"
@@ -187,18 +197,32 @@ def invoke_llm_sse_post(request: LLMRequest):
     llm_type = request.llm_type if request.llm_type else ""
     options = request.options if request.options else {}
 
-    def _sse_event_with_newline(line: str) -> str:
-        # SSE data lines are joined with "\n"; add an empty data line to preserve line breaks.
-        return f"data: {line}\ndata: \n\n"
+    def _sse_event_for_chunk(chunk: str) -> str:
+        if not chunk:
+            return ""
+        out_lines = []
+        buf = ""
+        for ch in chunk.replace("\r\n", "\n").replace("\r", "\n"):
+            if ch == "\n":
+                if buf:
+                    out_lines.append(f"data: {buf}")
+                    buf = ""
+                out_lines.append("data: ")
+            else:
+                buf += ch
+        if buf:
+            out_lines.append(f"data: {buf}")
+        if not out_lines:
+            return ""
+        return "\n".join(out_lines) + "\n\n"
 
     def sse_response_generator():
         last_beat = time.time()
         try:
-            for line in normalize_chunks_to_lines(
-                    services.generate_response(llm_type, request.template, options),
-                    llm_type=llm_type
-            ):
-                yield _sse_event_with_newline(line)
+            for chunk in services.generate_response(llm_type, request.template, options):
+                payload = _sse_event_for_chunk(str(chunk))
+                if payload:
+                    yield payload
                 if time.time() - last_beat > 15:
                     yield ": keep-alive\n\n"
                     last_beat = time.time()

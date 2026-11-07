@@ -35,7 +35,7 @@ def generate_chat_google_generative_ai():
     return langchain_google_genai.ChatGoogleGenerativeAI(
         model="gemini-3.6-flash",
         max_output_tokens=2_048,
-        thinking_level="low"  # 사고 토큰도 max_output_tokens에 포함된다
+        thinking_level="minimal"  # 사고 토큰도 max_output_tokens에 포함되어 사고가 길면 답변이 잘린다
     )
 
 

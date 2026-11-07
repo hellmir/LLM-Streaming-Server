@@ -20,3 +20,10 @@ def throw_paid_model_usage_limit_exception(llm_type):
         status_code=403,
         detail=f"[한도 초과] {llm_type} 유료 모델의 일일 사용 한도를 초과했습니다. 일일 사용량은 자정에 초기화됩니다."
     )
+
+
+def throw_usage_store_unavailable_exception():
+    raise fastapi.HTTPException(
+        status_code=503,
+        detail="[일시 장애] 사용량을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요."
+    )

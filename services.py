@@ -8,12 +8,15 @@ import httpx
 import langchain_core.prompts
 
 import llm_picker
+import usage_store
 
 LINE_BREAK = "\n"
 TEMPLATE_HEADER = "Given the {options} I want you to create:" + LINE_BREAK
 TEMPLATE_FOOTER = LINE_BREAK + "Answer in KOREAN"
 
 logging.basicConfig(level=logging.INFO)
+# httpx는 요청 주소를 INFO로 남기는데 Google 검색 주소에는 API 키가 들어 있다
+logging.getLogger("httpx").setLevel(logging.WARNING)
 log = logging.getLogger("services_logger")
 
 
@@ -66,8 +69,6 @@ async def generate_sync_response(llm_type: str, template_content: str, options: 
     return response
 
 
-image_search_usage = 0
-
 dotenv.load_dotenv()
 GOOGLE_API_KEY = os.environ.get("GOOGLE_IMAGE_API_KEY")
 CX = os.environ.get("CUSTOM_SEARCH_ENGINE_ID")
@@ -77,20 +78,7 @@ SEARCH_USAGE_LIMIT_PER_DAY_EXCEEDED_MESSAGE = "일일 검색 사용량을 모두
 
 
 async def add_images(food_names, response_content):
-    global image_search_usage
-    log.info("일일 이미지 검색 사용량: %s", image_search_usage)
-
-    image_urls = []
-
-    # 이미지 검색 일일 사용 한도를 100회로 제한
-    if image_search_usage + len(food_names) >= 100:
-        log.warning(SEARCH_USAGE_LIMIT_PER_DAY_EXCEEDED_MESSAGE)
-
-        # [CHANGED] 기본 이미지 채우기 로직 수정 (list로 일괄 채움)
-        image_urls = [[DEFAULT_IMAGE_URL] for _ in food_names]
-    else:
-        image_urls = await asyncio.gather(*[search_google_images(name) for name in food_names])
-        image_search_usage += len(image_urls)
+    image_urls = await get_image_urls(food_names)
 
     for i, item in enumerate(response_content):
         if i < len(image_urls):
@@ -98,6 +86,33 @@ async def add_images(food_names, response_content):
 
     updated_json = json.dumps(response_content, ensure_ascii=False, indent=2)
     log.info("최종 JSON 데이터: %s", updated_json)
+
+
+async def get_image_urls(food_names):
+    if not reserve_image_search_usage(len(food_names)):
+        return [[DEFAULT_IMAGE_URL] for _ in food_names]
+
+    return await asyncio.gather(*[search_google_images(name) for name in food_names])
+
+
+def reserve_image_search_usage(count):
+    # 동시 요청이 한도를 함께 넘지 않도록 먼저 올리고, 한도에 걸리면 되돌린다
+    try:
+        # 그 사이 날짜가 바뀌어도 올린 날짜의 카운터를 되돌리도록 날짜를 한 번만 구한다
+        usage_day = usage_store.current_usage_day()
+        image_search_usage = usage_store.increase_image_search_usage(count, usage_day)
+        log.info("일일 이미지 검색 사용량: %s", image_search_usage)
+
+        # 이미지 검색 일일 사용 한도를 100회로 제한
+        if image_search_usage < 100:
+            return True
+
+        usage_store.decrease_image_search_usage(count, usage_day)
+        log.warning(SEARCH_USAGE_LIMIT_PER_DAY_EXCEEDED_MESSAGE)
+        return False
+    except usage_store.UsageStoreUnavailableError as e:
+        log.warning("이미지 검색 사용량 확인 실패: %s", e)
+        return False
 
 
 async def search_google_images(food_name):
@@ -122,9 +137,3 @@ async def search_google_images(food_name):
         log.info("이미지 주소: %s", image_url)
 
     return image_urls
-
-
-def reset_image_search_usage():
-    global image_search_usage  # [CHANGED] 변수명 오류 수정 (paid_model_usage -> image_search_usage)
-    image_search_usage = 0
-    log.info("이미지 검색 사용량이 초기화 되었습니다. 일일 사용량: %d", image_search_usage)

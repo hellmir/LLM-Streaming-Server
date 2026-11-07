@@ -9,3 +9,8 @@
 # ETC
 .idea/
 *.iml
+__pycache__/
+.pytest_cache/
+.coverage
+.vercel
+.env.local

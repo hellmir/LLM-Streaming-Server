@@ -12,10 +12,10 @@ from fastapi.responses import StreamingResponse
 
 import global_exception_handler
 import services
+import usage_store
 
 router = fastapi.APIRouter(prefix="")
 
-paid_model_usage = 0
 MODEL_DESCRIPTION = """
     \n- llm_type: LLM 모델 유형 (미입력 시 기본 모델 사용)
     \n  - mistral (현재 기본 모델)
@@ -254,20 +254,21 @@ def is_paid_model(llm_type):
 
 
 def authorize_paid_model(input_llm_type, input_secret_key):
-    global paid_model_usage
-
     if input_secret_key != os.environ.get("SECRET_KEY_FOR_PAID_MODEL"):
         global_exception_handler.throw_paid_model_unauthorized_exception(input_llm_type)
-    else:
-        paid_model_usage += 1
 
-        # 유료 모델 일일 사용 한도를 10,000회로 제한
-        if paid_model_usage > 10_000:
-            global_exception_handler.throw_paid_model_usage_limit_exception(input_llm_type)
-        log.info("%s API가 호출되었습니다. 일일 사용량: %d", input_llm_type, paid_model_usage)
+    paid_model_usage = increase_paid_model_usage()
+
+    # 유료 모델 일일 사용 한도를 10,000회로 제한
+    if paid_model_usage > 10_000:
+        global_exception_handler.throw_paid_model_usage_limit_exception(input_llm_type)
+    log.info("%s API가 호출되었습니다. 일일 사용량: %d", input_llm_type, paid_model_usage)
 
 
-def reset_gpt_usage():
-    global paid_model_usage
-    paid_model_usage = 0
-    log.info("유료 모델 사용량이 초기화 되었습니다. 일일 사용량: %d", paid_model_usage)
+def increase_paid_model_usage():
+    # 한도는 비용 상한이므로 사용량을 확인할 수 없으면 호출하지 않는다
+    try:
+        return usage_store.increase_paid_model_usage()
+    except usage_store.UsageStoreUnavailableError as e:
+        log.error("유료 모델 사용량 확인 실패: %s", e)
+        global_exception_handler.throw_usage_store_unavailable_exception()

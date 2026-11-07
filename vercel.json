@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "outputDirectory": "public",
+  "regions": ["icn1"],
+  "rewrites": [
+    { "source": "/docs", "destination": "/api/index" },
+    { "source": "/docs/oauth2-redirect", "destination": "/api/index" },
+    { "source": "/redoc", "destination": "/api/index" },
+    { "source": "/openapi.json", "destination": "/api/index" },
+    { "source": "/sync", "destination": "/api/index" },
+    { "source": "/streaming", "destination": "/api/index" },
+    { "source": "/streaming/sse", "destination": "/api/index" }
+  ]
+}

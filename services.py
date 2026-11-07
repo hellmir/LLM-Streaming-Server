@@ -15,6 +15,8 @@ TEMPLATE_HEADER = "Given the {options} I want you to create:" + LINE_BREAK
 TEMPLATE_FOOTER = LINE_BREAK + "Answer in KOREAN"
 
 logging.basicConfig(level=logging.INFO)
+# httpx는 요청 주소를 INFO로 남기는데 Google 검색 주소에는 API 키가 들어 있다
+logging.getLogger("httpx").setLevel(logging.WARNING)
 log = logging.getLogger("services_logger")
 
 

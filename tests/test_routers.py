@@ -46,7 +46,7 @@ def streaming_body(llm_type, secret_key):
     return {"llm_type": llm_type, "template": "인사해 줘", "options": {}, "secret_key": secret_key}
 
 
-@pytest.mark.parametrize("llm_type", ["gpt", "claude", "deepseek"])
+@pytest.mark.parametrize("llm_type", ["llama", "gpt", "claude", "deepseek"])
 def test_paid_model_within_limit_streams(client, llm_calls, paid_usage, llm_type):
     response = client.post("/streaming/sse", json=streaming_body(llm_type, SECRET_KEY_FOR_PAID_MODEL))
 
@@ -75,8 +75,9 @@ def test_paid_model_over_limit_is_rejected_without_calling_llm(client, llm_calls
     assert llm_calls == []
 
 
-def test_paid_model_with_wrong_key_is_rejected_without_counting(client, llm_calls, paid_usage):
-    response = client.post("/streaming/sse", json=streaming_body("gpt", SECRET_KEY))
+@pytest.mark.parametrize("llm_type", ["llama", "gpt", "claude", "deepseek"])
+def test_paid_model_with_wrong_key_is_rejected_without_counting(client, llm_calls, paid_usage, llm_type):
+    response = client.post("/streaming/sse", json=streaming_body(llm_type, SECRET_KEY))
 
     assert response.status_code == 401
     assert paid_usage.calls == 0
@@ -95,7 +96,7 @@ def test_paid_model_is_rejected_when_usage_store_is_down(client, llm_calls, monk
     assert llm_calls == []
 
 
-@pytest.mark.parametrize("llm_type", ["mistral", "default", "", None, "clovax", "gemini", "llama"])
+@pytest.mark.parametrize("llm_type", ["mistral", "default", "", None, "clovax", "gemini"])
 def test_free_model_streams_without_touching_usage_store(client, llm_calls, paid_usage, llm_type):
     response = client.post("/streaming/sse", json=streaming_body(llm_type, SECRET_KEY))
 

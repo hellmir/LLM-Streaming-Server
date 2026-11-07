@@ -6,7 +6,7 @@ import llm_picker
 @pytest.mark.parametrize(
     "llm_type, expected_class",
     [
-        ("llama", "SambaNovaCloud"),
+        ("llama", "ChatOpenAI"),
         ("clovax", "ChatClovaX"),
         ("gemini", "ChatGoogleGenerativeAI"),
         ("gpt", "ChatOpenAI"),

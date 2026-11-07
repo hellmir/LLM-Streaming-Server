@@ -53,27 +53,15 @@ def test_static_output_directory_keeps_source_files_private():
     assert [path for path in (ROOT / "public").iterdir() if path.is_file()]
 
 
-def test_daily_reset_cron_calls_the_reset_handler_at_1700_kst():
-    crons = VERCEL_CONFIG["crons"]
-    handler_paths = [route.path for route in routers.router.routes if route.endpoint is routers.reset_daily_usage]
-
-    assert [cron["path"] for cron in crons] == handler_paths
-    assert handler_paths[0] in rewrite_sources()
-    # UTC 기준이다. Hobby는 하루 1회만 허용되고 이 시간대(±59분) 안에서 실행된다.
-    assert crons[0]["schedule"] == "0 8 * * *"
+def test_no_cron_job_is_configured():
+    # 일일 초기화는 날짜별 키로 처리하므로 함수를 깨우는 크론이 없다.
+    assert "crons" not in VERCEL_CONFIG
 
 
 def test_env_file_is_excluded_from_deployment():
     ignored = (ROOT / ".vercelignore").read_text(encoding="utf-8").splitlines()
 
     assert ".env" in ignored
-
-
-def test_tracked_env_has_no_usable_cron_secret():
-    # 공개 저장소의 자리 표시자가 실제 비밀값처럼 동작하면 안 된다(빈 값이면 크론 인증을 거부한다).
-    lines = (ROOT / ".env").read_text(encoding="utf-8").splitlines()
-
-    assert "CRON_SECRET=" in lines
 
 
 def test_lock_targets_python_312_without_shadowing_packages():

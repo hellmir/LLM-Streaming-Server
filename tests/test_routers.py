@@ -5,9 +5,7 @@ import app as app_module
 import routers
 import services
 import usage_store
-from tests.conftest import CRON_SECRET, FRONTEND_URL, SECRET_KEY, SECRET_KEY_FOR_PAID_MODEL
-
-CRON_PATH = "/api/cron/reset-daily-usage"
+from tests.conftest import FRONTEND_URL, SECRET_KEY, SECRET_KEY_FOR_PAID_MODEL
 
 
 @pytest.fixture
@@ -140,72 +138,16 @@ def test_sync_endpoint_returns_llm_result(client, monkeypatch):
     assert response.json() == [{"name": "토마토 파스타"}]
 
 
-@pytest.fixture
-def reset_calls(monkeypatch):
-    calls = []
-    monkeypatch.setattr(usage_store, "reset_daily_usage", lambda: calls.append(True))
-    return calls
-
-
-def test_cron_with_correct_secret_resets_usage(client, reset_calls):
-    response = client.get(CRON_PATH, headers={"Authorization": f"Bearer {CRON_SECRET}"})
-
-    assert response.status_code == 200
-    assert reset_calls == [True]
-
-
-@pytest.mark.parametrize(
-    "headers",
-    [
-        {},
-        {"Authorization": "Bearer wrong"},
-        {"Authorization": CRON_SECRET},
-        {"Authorization": "Bearer "},
-        {"Authorization": "Bearer None"},
-    ],
-)
-def test_cron_with_invalid_authorization_is_rejected(client, reset_calls, headers):
-    response = client.get(CRON_PATH, headers=headers)
-
-    assert response.status_code == 401
-    assert reset_calls == []
-
-
-def test_cron_with_non_ascii_authorization_is_rejected_not_crashed(client, reset_calls):
-    response = client.get(CRON_PATH, headers={"Authorization": "Bearer 한글".encode("utf-8")})
-
-    assert response.status_code == 401
-    assert reset_calls == []
-
-
-@pytest.mark.parametrize("headers", [{}, {"Authorization": "Bearer "}, {"Authorization": "Bearer None"}])
-def test_cron_is_closed_when_secret_is_not_configured(client, reset_calls, monkeypatch, headers):
-    monkeypatch.delenv("CRON_SECRET")
-
-    response = client.get(CRON_PATH, headers=headers)
-
-    assert response.status_code == 401
-    assert reset_calls == []
-
-
-def test_cron_reports_failure_when_usage_store_is_down(client, monkeypatch):
-    def down():
-        raise usage_store.UsageStoreUnavailableError("down")
-
-    monkeypatch.setattr(usage_store, "reset_daily_usage", down)
-
-    response = client.get(CRON_PATH, headers={"Authorization": f"Bearer {CRON_SECRET}"})
-
-    assert response.status_code == 503
-
-
-def test_docs_and_openapi_are_served_and_cron_is_hidden(client):
+def test_docs_and_openapi_are_served(client):
     assert client.get("/docs").status_code == 200
 
     openapi = client.get("/openapi.json")
     assert openapi.status_code == 200
     assert "/streaming/sse" in openapi.json()["paths"]
-    assert CRON_PATH not in openapi.json()["paths"]
+
+
+def test_daily_reset_endpoint_is_removed(client):
+    assert client.get("/api/cron/reset-daily-usage").status_code == 404
 
 
 def test_preflight_allows_configured_frontend(client):

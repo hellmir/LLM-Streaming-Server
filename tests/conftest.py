@@ -5,7 +5,6 @@ import pytest
 FRONTEND_URL = "https://frontend.test"
 SECRET_KEY = "free-secret"
 SECRET_KEY_FOR_PAID_MODEL = "paid-secret"
-CRON_SECRET = "cron-secret-at-least-16-characters"
 KV_REST_API_URL = "https://kv.test"
 KV_REST_API_TOKEN = "kv-token-must-not-leak"
 
@@ -13,7 +12,6 @@ KV_REST_API_TOKEN = "kv-token-must-not-leak"
 os.environ["FRONTEND_URL"] = FRONTEND_URL
 os.environ["SECRET_KEY"] = SECRET_KEY
 os.environ["SECRET_KEY_FOR_PAID_MODEL"] = SECRET_KEY_FOR_PAID_MODEL
-os.environ["CRON_SECRET"] = CRON_SECRET
 os.environ["KV_REST_API_URL"] = KV_REST_API_URL
 os.environ["KV_REST_API_TOKEN"] = KV_REST_API_TOKEN
 

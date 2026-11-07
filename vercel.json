@@ -10,10 +10,6 @@
     { "source": "/openapi.json", "destination": "/api/index" },
     { "source": "/sync", "destination": "/api/index" },
     { "source": "/streaming", "destination": "/api/index" },
-    { "source": "/streaming/sse", "destination": "/api/index" },
-    { "source": "/api/cron/reset-daily-usage", "destination": "/api/index" }
-  ],
-  "crons": [
-    { "path": "/api/cron/reset-daily-usage", "schedule": "0 8 * * *" }
+    { "source": "/streaming/sse", "destination": "/api/index" }
   ]
 }

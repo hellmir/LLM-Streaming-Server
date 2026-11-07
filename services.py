@@ -96,14 +96,16 @@ async def get_image_urls(food_names):
 def reserve_image_search_usage(count):
     # 동시 요청이 한도를 함께 넘지 않도록 먼저 올리고, 한도에 걸리면 되돌린다
     try:
-        image_search_usage = usage_store.increase_image_search_usage(count)
+        # 그 사이 날짜가 바뀌어도 올린 날짜의 카운터를 되돌리도록 날짜를 한 번만 구한다
+        usage_day = usage_store.current_usage_day()
+        image_search_usage = usage_store.increase_image_search_usage(count, usage_day)
         log.info("일일 이미지 검색 사용량: %s", image_search_usage)
 
         # 이미지 검색 일일 사용 한도를 100회로 제한
         if image_search_usage < 100:
             return True
 
-        usage_store.decrease_image_search_usage(count)
+        usage_store.decrease_image_search_usage(count, usage_day)
         log.warning(SEARCH_USAGE_LIMIT_PER_DAY_EXCEEDED_MESSAGE)
         return False
     except usage_store.UsageStoreUnavailableError as e:

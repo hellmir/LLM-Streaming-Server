@@ -1,7 +1,6 @@
 import json  # GET SSE에서 options 파싱
 import logging
 import os
-import secrets
 import time  # 하트비트
 import typing
 
@@ -241,32 +240,6 @@ def invoke_llm_sse_post(request: LLMRequest):
         media_type="text/event-stream; charset=utf-8",
         headers=headers
     )
-
-
-# Vercel Cron이 매일 17시대 KST(미국 서부 시간 기준 자정 무렵)에 호출한다
-# vercel.json의 0 8 * * *는 UTC이고 Hobby는 이 시간대 안의 어느 시점에 실행한다(재시도 없음)
-@router.get("/api/cron/reset-daily-usage", include_in_schema=False)
-def reset_daily_usage(authorization: typing.Optional[str] = fastapi.Header(default=None)):
-    authenticate_cron(authorization)
-
-    try:
-        usage_store.reset_daily_usage()
-    except usage_store.UsageStoreUnavailableError as e:
-        log.error("일일 사용량 초기화 실패: %s", e)
-        global_exception_handler.throw_usage_store_unavailable_exception()
-
-    log.info("유료 모델과 이미지 검색 사용량이 초기화되었습니다.")
-    return {"status": "reset"}
-
-
-def authenticate_cron(authorization):
-    cron_secret = os.environ.get("CRON_SECRET")
-
-    if not cron_secret:
-        global_exception_handler.throw_unauthorized_exception()
-
-    if not secrets.compare_digest((authorization or "").encode(), f"Bearer {cron_secret}".encode()):
-        global_exception_handler.throw_unauthorized_exception()
 
 
 def authenticate(input_llm_type, input_secret_key):

@@ -71,8 +71,7 @@
 
 ### Server
 - Vercel Functions (Python 3.12)
-- Vercel Cron (일일 사용량 초기화)
-- Upstash Redis (유료 모델·이미지 검색 사용량)
+- Upstash Redis (유료 모델·이미지 검색 일일 사용량, 날짜별 키)
   <br>
 
 ## Tools

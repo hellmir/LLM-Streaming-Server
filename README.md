@@ -5,11 +5,11 @@
 ### 다양한 생성형 AI 모델의 스트리밍 서비스를 제공하는 서버
 - Ministral 3 14B
 - HCX-003
-- Gemini 1.5 Pro
-- Llama 3.3
-- GPT 4o Mini
-- Claude Haiku
-- DeepSeek V3
+- Gemini 3.6 Flash
+- Llama 3.3 (유료 서비스 중단)
+- GPT 6 Luna (유료 서비스 중단)
+- Claude Haiku 5.5 (유료 서비스 중단)
+- DeepSeek Flash (유료 서비스 중단)
 <br><br>
 
 ## 📼 서비스 시연
@@ -56,10 +56,12 @@
 - ChatMistralAI
 - ChatClovaX
 - ChatGoogleGenerativeAI
-- SambaNovaCloud
-- ChatOpenAI
+- ChatOpenAI (GPT, SambaNova 호환 API)
 - ChatAnthropic
 - ChatDeepSeek
+
+## Image Search
+- Kakao 이미지 검색 API
 
 ## DevOps
 

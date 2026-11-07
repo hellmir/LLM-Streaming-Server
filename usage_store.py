@@ -6,7 +6,7 @@ import httpx
 # 무료 Upstash DB는 계정당 1개라 다른 프로젝트와 함께 쓸 수 있으므로 키에 서비스 접두사를 둔다
 PAID_MODEL_USAGE_KEY = "llm:usage:paid_model"
 IMAGE_SEARCH_USAGE_KEY = "llm:usage:image_search"
-# 키에 날짜를 넣어 날이 바뀌면 새 카운터로 시작한다. 경계는 Google Cloud(미국 서부) 일일 한도 초기화에 맞춘 17시 KST다
+# 키에 날짜를 넣어 날이 바뀌면 새 카운터로 시작한다. 경계는 기존 일일 초기화 시각인 17시 KST를 유지한다
 USAGE_DAY_TIMEZONE = datetime.timezone(datetime.timedelta(hours=-8))
 # 지난 날짜의 키는 다시 쓰지 않으므로 공용 DB에 쌓이지 않게 만료시킨다. 하루보다 길어야 쓰는 동안 사라지지 않는다
 USAGE_KEY_TTL_SECONDS = 2 * 24 * 60 * 60

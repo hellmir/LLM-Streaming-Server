@@ -73,5 +73,12 @@ def test_lock_targets_python_312_without_shadowing_packages():
         assert name not in lock["default"]
 
 
+def test_env_template_lists_the_image_search_key():
+    names = {line.split("=")[0] for line in (ROOT / ".env").read_text(encoding="utf-8").splitlines()}
+
+    assert "KAKAO_REST_API_KEY" in names
+    assert not {"GOOGLE_IMAGE_API_KEY", "CUSTOM_SEARCH_ENGINE_ID", "SEARCH_URL"} & names
+
+
 def test_scheduler_module_is_removed():
     assert not (ROOT / "scheduler.py").exists()

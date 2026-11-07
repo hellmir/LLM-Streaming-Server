@@ -21,10 +21,10 @@ MODEL_DESCRIPTION = """
     \n  - mistral (현재 기본 모델)
     \n  - clovax
     \n  - gemini
-    \n  - llama
-    \n  - gpt (유료 모델: 관리자로부터 Secret Key 발급 필요)
-    \n  - claude (유료 모델: 관리자로부터 Secret Key 발급 필요)
-    \n  - deepseek (유료 모델: 관리자로부터 Secret Key 발급 필요)
+    \n  - llama (유료 모델: 관리자로부터 Secret Key 발급 필요, 현재 유료 서비스 중단)
+    \n  - gpt (유료 모델: 관리자로부터 Secret Key 발급 필요, 현재 유료 서비스 중단)
+    \n  - claude (유료 모델: 관리자로부터 Secret Key 발급 필요, 현재 유료 서비스 중단)
+    \n  - deepseek (유료 모델: 관리자로부터 Secret Key 발급 필요, 현재 유료 서비스 중단)
     \n- template: 요청 프롬프트(요구사항)
     \n- options: 요청 프롬프트에 적용할 조건들(선택사항)
     \n  - Key: Array Value 형태로 전송
@@ -250,7 +250,7 @@ def authenticate(input_llm_type, input_secret_key):
 
 
 def is_paid_model(llm_type):
-    return llm_type in ("gpt", "claude", "deepseek")
+    return llm_type in ("llama", "gpt", "claude", "deepseek")
 
 
 def authorize_paid_model(input_llm_type, input_secret_key):

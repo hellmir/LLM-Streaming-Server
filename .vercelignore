@@ -1,0 +1,7 @@
+.env
+.coverage
+.pytest_cache/
+__pycache__/
+README.md
+pytest.ini
+tests/

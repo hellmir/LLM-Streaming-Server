@@ -1,6 +1,7 @@
 import json  # GET SSE에서 options 파싱
 import logging
 import os
+import secrets
 import time  # 하트비트
 import typing
 
@@ -12,10 +13,10 @@ from fastapi.responses import StreamingResponse
 
 import global_exception_handler
 import services
+import usage_store
 
 router = fastapi.APIRouter(prefix="")
 
-paid_model_usage = 0
 MODEL_DESCRIPTION = """
     \n- llm_type: LLM 모델 유형 (미입력 시 기본 모델 사용)
     \n  - mistral (현재 기본 모델)
@@ -242,6 +243,32 @@ def invoke_llm_sse_post(request: LLMRequest):
     )
 
 
+# Vercel Cron이 매일 17시대 KST(미국 서부 시간 기준 자정 무렵)에 호출한다
+# vercel.json의 0 8 * * *는 UTC이고 Hobby는 이 시간대 안의 어느 시점에 실행한다(재시도 없음)
+@router.get("/api/cron/reset-daily-usage", include_in_schema=False)
+def reset_daily_usage(authorization: typing.Optional[str] = fastapi.Header(default=None)):
+    authenticate_cron(authorization)
+
+    try:
+        usage_store.reset_daily_usage()
+    except usage_store.UsageStoreUnavailableError as e:
+        log.error("일일 사용량 초기화 실패: %s", e)
+        global_exception_handler.throw_usage_store_unavailable_exception()
+
+    log.info("유료 모델과 이미지 검색 사용량이 초기화되었습니다.")
+    return {"status": "reset"}
+
+
+def authenticate_cron(authorization):
+    cron_secret = os.environ.get("CRON_SECRET")
+
+    if not cron_secret:
+        global_exception_handler.throw_unauthorized_exception()
+
+    if not secrets.compare_digest((authorization or "").encode(), f"Bearer {cron_secret}".encode()):
+        global_exception_handler.throw_unauthorized_exception()
+
+
 def authenticate(input_llm_type, input_secret_key):
     if is_paid_model(input_llm_type):
         authorize_paid_model(input_llm_type, input_secret_key)
@@ -254,20 +281,21 @@ def is_paid_model(llm_type):
 
 
 def authorize_paid_model(input_llm_type, input_secret_key):
-    global paid_model_usage
-
     if input_secret_key != os.environ.get("SECRET_KEY_FOR_PAID_MODEL"):
         global_exception_handler.throw_paid_model_unauthorized_exception(input_llm_type)
-    else:
-        paid_model_usage += 1
 
-        # 유료 모델 일일 사용 한도를 10,000회로 제한
-        if paid_model_usage > 10_000:
-            global_exception_handler.throw_paid_model_usage_limit_exception(input_llm_type)
-        log.info("%s API가 호출되었습니다. 일일 사용량: %d", input_llm_type, paid_model_usage)
+    paid_model_usage = increase_paid_model_usage()
+
+    # 유료 모델 일일 사용 한도를 10,000회로 제한
+    if paid_model_usage > 10_000:
+        global_exception_handler.throw_paid_model_usage_limit_exception(input_llm_type)
+    log.info("%s API가 호출되었습니다. 일일 사용량: %d", input_llm_type, paid_model_usage)
 
 
-def reset_gpt_usage():
-    global paid_model_usage
-    paid_model_usage = 0
-    log.info("유료 모델 사용량이 초기화 되었습니다. 일일 사용량: %d", paid_model_usage)
+def increase_paid_model_usage():
+    # 한도는 비용 상한이므로 사용량을 확인할 수 없으면 호출하지 않는다
+    try:
+        return usage_store.increase_paid_model_usage()
+    except usage_store.UsageStoreUnavailableError as e:
+        log.error("유료 모델 사용량 확인 실패: %s", e)
+        global_exception_handler.throw_usage_store_unavailable_exception()

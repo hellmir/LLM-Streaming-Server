@@ -4,24 +4,22 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-langchain-openai = "*"
-langchain-community = "*"
-black = "*"
-python-dotenv = "*"
-langchain-ollama = "*"
 fastapi = "*"
-uvicorn = "*"
-controller = "*"
-routers = "*"
+httpx = "*"
 langchain-anthropic = "*"
+langchain-community = "*"
+langchain-core = "*"
 langchain-deepseek = "*"
-google-genai = "*"
 langchain-google-genai = "*"
 langchain-mistralai = "*"
-apscheduler = "*"
+langchain-openai = "*"
+python-dotenv = "*"
+uvicorn = "*"
 
 [dev-packages]
+black = "*"
+pytest = "*"
+pytest-cov = "*"
 
 [requires]
-python_version = "3.9"
-python_full_version = "3.9.6"
+python_version = "3.12"

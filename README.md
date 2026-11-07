@@ -67,10 +67,12 @@
 - Pipenv
 
 ### WAS
-- Uvicorn
+- Uvicorn (로컬 실행)
 
 ### Server
-- NCP Server
+- Vercel Functions (Python 3.12)
+- Vercel Cron (일일 사용량 초기화)
+- Upstash Redis (유료 모델·이미지 검색 사용량)
   <br>
 
 ## Tools

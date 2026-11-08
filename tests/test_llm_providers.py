@@ -57,14 +57,15 @@ def test_sync_returns_plain_text_when_the_answer_is_not_json(provider, llm_type)
     assert sync(llm_type) == "안녕하세요"
 
 
-def test_gemini_request_uses_a_current_model_and_keeps_thinking_low(provider):
+def test_gemini_request_uses_a_current_model_and_keeps_thinking_minimal(provider):
+    # 사고 토큰도 출력 상한에 포함된다. low에서는 2,048 중 1,043을 사고에 써서 답변이 잘린 사례가 있다.
     stream("gemini")
 
     request = provider.last_request
     config = request["body"]["generationConfig"]
     assert "models/gemini-3.6-flash:" in request["path"]
     assert config["maxOutputTokens"] == MAX_OUTPUT_TOKENS
-    assert "LOW" in config["thinkingConfig"].values()
+    assert "MINIMAL" in config["thinkingConfig"].values()
     assert "temperature" not in config
 
 
